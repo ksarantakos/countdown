@@ -24,12 +24,13 @@ struct CountdownWidgetView: View {
 
 private struct Wordmark: View {
     var size: CGFloat
+    @Environment(\.widgetRenderingMode) private var renderingMode
     var body: some View {
         Text("WoW Forever")
             .font(Theme.display(size, weight: .bold))
             .tracking(size * 0.08)
             .foregroundStyle(Theme.carved)
-            .shadow(color: .black.opacity(0.6), radius: 0, y: 1)
+            .shadow(color: renderingMode == .fullColor ? .black.opacity(0.6) : .clear, radius: 0, y: 1)
             .lineLimit(1)
             .minimumScaleFactor(0.6)
     }
@@ -38,12 +39,14 @@ private struct Wordmark: View {
 private struct DaysNumeral: View {
     var days: Int
     var size: CGFloat
+    @Environment(\.widgetRenderingMode) private var renderingMode
     var body: some View {
+        let fullColor = renderingMode == .fullColor
         Text(days, format: .number.grouping(.never))
             .font(Theme.display(size, weight: .black))
             .foregroundStyle(Theme.goldLeaf)
-            .shadow(color: Theme.gold600.opacity(0.55), radius: size * 0.1)
-            .shadow(color: .black.opacity(0.5), radius: 0, y: 2)
+            .shadow(color: fullColor ? Theme.gold600.opacity(0.55) : .clear, radius: size * 0.1)
+            .shadow(color: fullColor ? .black.opacity(0.5) : .clear, radius: 0, y: 2)
             .widgetAccentable()
             .contentTransition(.numericText(countsDown: true))
     }
@@ -64,12 +67,13 @@ private struct CapsLabel: View {
 private struct LiveTimer: View {
     var interval: ClosedRange<Date>
     var size: CGFloat
+    @Environment(\.widgetRenderingMode) private var renderingMode
     var body: some View {
         Text(timerInterval: interval, countsDown: true)
             .font(Theme.display(size, weight: .bold))
             .monospacedDigit()
             .foregroundStyle(Theme.carved)
-            .shadow(color: .black.opacity(0.6), radius: 0, y: 1)
+            .shadow(color: renderingMode == .fullColor ? .black.opacity(0.6) : .clear, radius: 0, y: 1)
             .multilineTextAlignment(.center)
     }
 }
@@ -85,11 +89,11 @@ private struct SmallLayout: View {
     var timer: ClosedRange<Date>
     var body: some View {
         VStack(spacing: 2) {
-            Wordmark(size: 13)
-            Ornament(width: 100).padding(.bottom, 2)
-            DaysNumeral(days: days, size: 52)
-            CapsLabel(text: daysLabel(days), size: 8)
-            LiveTimer(interval: timer, size: 18).padding(.top, 4)
+            Wordmark(size: 14)
+            Ornament(width: 100)
+            DaysNumeral(days: days, size: 54)
+            CapsLabel(text: daysLabel(days), size: 8).padding(.top, -6)
+            LiveTimer(interval: timer, size: 20).padding(.top, 2)
         }
     }
 }
@@ -114,10 +118,9 @@ private struct MediumLayout: View {
                 .padding(.vertical, 8)
 
             VStack(spacing: 2) {
-                DaysNumeral(days: days, size: 56)
-                CapsLabel(text: daysLabel(days), size: 8)
-                LiveTimer(interval: timer, size: 20).padding(.top, 4)
-                CapsLabel(text: "HRS  MIN  SEC", size: 7)
+                DaysNumeral(days: days, size: 58)
+                CapsLabel(text: daysLabel(days), size: 8).padding(.top, -6)
+                LiveTimer(interval: timer, size: 22).padding(.top, 4)
             }
             .frame(maxWidth: .infinity)
         }
@@ -134,7 +137,7 @@ private struct LargeLayout: View {
             Medallion {
                 VStack(spacing: 0) {
                     DaysNumeral(days: days, size: 72)
-                    CapsLabel(text: daysLabel(days), size: 10)
+                    CapsLabel(text: daysLabel(days), size: 10).padding(.top, -8)
                 }
             }
             .frame(width: 170, height: 170)
@@ -150,6 +153,7 @@ private struct LargeLayout: View {
 
 private struct LiveLayout: View {
     var family: WidgetFamily
+    @Environment(\.widgetRenderingMode) private var renderingMode
     var body: some View {
         let big: CGFloat = family == .systemSmall ? 30 : family == .systemMedium ? 40 : 52
         VStack(spacing: 8) {
@@ -158,7 +162,7 @@ private struct LiveLayout: View {
             Text("NOW LIVE")
                 .font(Theme.display(big, weight: .black))
                 .foregroundStyle(Theme.goldLeaf)
-                .shadow(color: Theme.gold400.opacity(0.7), radius: big * 0.25)
+                .shadow(color: renderingMode == .fullColor ? Theme.gold400.opacity(0.7) : .clear, radius: big * 0.25)
                 .widgetAccentable()
                 .lineLimit(1)
                 .minimumScaleFactor(0.5)
@@ -173,18 +177,28 @@ private struct LiveLayout: View {
 // MARK: - Frame and background
 
 /// Bronze octagonal frame around a glowing teal disc, with hour ticks.
+/// Outside full color (monochrome/vibrant desktop, accented), fills would render as solid
+/// white slabs, so only outlines are drawn.
 private struct Medallion<Content: View>: View {
     @ViewBuilder var content: Content
+    @Environment(\.widgetRenderingMode) private var renderingMode
     var body: some View {
         ZStack {
-            Octagon().fill(Theme.bronze)
-                .shadow(color: .black.opacity(0.5), radius: 4, y: 2)
-            Octagon().stroke(Theme.beige200.opacity(0.5), lineWidth: 0.75).padding(3)
-            Circle()
-                .fill(RadialGradient(colors: [Theme.sectionBottom, Theme.teal600, Theme.teal800], center: .center, startRadius: 0, endRadius: 70))
-                .padding(14)
-            Circle().stroke(Theme.beige600, lineWidth: 2).padding(14)
-            HourTicks().stroke(Theme.beige200.opacity(0.45), lineWidth: 1).padding(19)
+            if renderingMode == .fullColor {
+                Octagon().fill(Theme.bronze)
+                    .shadow(color: .black.opacity(0.5), radius: 4, y: 2)
+                Octagon().stroke(Theme.beige200.opacity(0.5), lineWidth: 0.75).padding(3)
+                Circle()
+                    .fill(RadialGradient(colors: [Theme.sectionBottom, Theme.teal600, Theme.teal800], center: .center, startRadius: 0, endRadius: 70))
+                    .padding(14)
+                Circle().stroke(Theme.beige600, lineWidth: 2).padding(14)
+                HourTicks().stroke(Theme.beige200.opacity(0.45), lineWidth: 1).padding(19)
+            } else {
+                Octagon().stroke(.white.opacity(0.55), lineWidth: 1.5)
+                Octagon().stroke(.white.opacity(0.25), lineWidth: 0.75).padding(4)
+                Circle().stroke(.white.opacity(0.35), lineWidth: 1).padding(14)
+                HourTicks().stroke(.white.opacity(0.3), lineWidth: 1).padding(19)
+            }
             content
         }
     }
@@ -251,8 +265,9 @@ struct WidgetBackground: View {
     }
 }
 
-#Preview(as: .systemMedium) {
+#Preview(as: .systemLarge) {
     CountdownWidget()
 } timeline: {
     CountdownEntry(date: .now, state: .counting(start: .now, days: 42, timerEnd: .now + 12_000))
+    CountdownEntry(date: .now, state: .live(start: .now))
 }
