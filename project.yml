@@ -1,0 +1,68 @@
+name: WoWCountdown
+options:
+  bundleIdPrefix: com.ksarantakos
+  deploymentTarget:
+    macOS: "14.0"
+  createIntermediateGroups: true
+  generateEmptyDirectories: false
+configFiles:
+  Debug: Config/Signing.xcconfig
+  Release: Config/Signing.xcconfig
+packages:
+  CountdownCore:
+    path: .
+settings:
+  base:
+    MARKETING_VERSION: 1.0.0
+    CURRENT_PROJECT_VERSION: 1
+    SWIFT_VERSION: "6.0"
+    ENABLE_HARDENED_RUNTIME: YES
+    DEAD_CODE_STRIPPING: YES
+targets:
+  WoWCountdown:
+    type: application
+    platform: macOS
+    sources:
+      - Sources/WoWCountdown
+      - Sources/Shared
+    dependencies:
+      - package: CountdownCore
+      - target: WoWCountdownWidget
+    info:
+      path: Generated/WoWCountdown-Info.plist
+      properties:
+        CFBundleDisplayName: WoW Forever Countdown
+        LSUIElement: true
+        LSApplicationCategoryType: public.app-category.entertainment
+        NSHumanReadableCopyright: Unofficial fan-made countdown. World of Warcraft is a trademark of Blizzard Entertainment.
+    settings:
+      base:
+        PRODUCT_NAME: WoWCountdown
+        PRODUCT_BUNDLE_IDENTIFIER: com.ksarantakos.wowcountdown
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    scheme: {}
+  WoWCountdownWidget:
+    type: app-extension
+    platform: macOS
+    sources:
+      - Sources/WoWCountdownWidget
+      - Sources/Shared
+    dependencies:
+      - package: CountdownCore
+      - sdk: WidgetKit.framework
+      - sdk: SwiftUI.framework
+    info:
+      path: Generated/WoWCountdownWidget-Info.plist
+      properties:
+        CFBundleDisplayName: WoW Forever Countdown
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    entitlements:
+      path: Generated/WoWCountdownWidget.entitlements
+      properties:
+        com.apple.security.app-sandbox: true
+    settings:
+      base:
+        PRODUCT_NAME: WoWCountdownWidget
+        PRODUCT_BUNDLE_IDENTIFIER: com.ksarantakos.wowcountdown.widget
+        SKIP_INSTALL: YES

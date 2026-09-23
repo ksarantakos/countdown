@@ -7,13 +7,11 @@ import CountdownCore
 final class StatusItemController: NSObject, NSMenuDelegate {
     private let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     private let countdown: CountdownController
-    private let widget: WidgetWindowController
     private let notifications: NotificationScheduler
     private var cancellable: AnyCancellable?
 
-    init(countdown: CountdownController, widget: WidgetWindowController, notifications: NotificationScheduler) {
+    init(countdown: CountdownController, notifications: NotificationScheduler) {
         self.countdown = countdown
-        self.widget = widget
         self.notifications = notifications
         super.init()
 
@@ -37,7 +35,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         menu.removeAllItems()
 
         let header = NSMenuItem(title: "WoW Forever · \(countdown.targetCaption)", action: nil, keyEquivalent: "")
-        if let icon = ResourceLocator.image(named: "AppIcon") {
+        if let icon = ResourceLocator.image(named: "MenuIcon") {
             icon.size = NSSize(width: 16, height: 16)
             header.image = icon
         } else {
@@ -47,8 +45,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         menu.addItem(header)
         menu.addItem(.separator())
 
-        menu.addItem(action(widget.isVisible ? "Hide Widget" : "Show Widget", #selector(toggleWidget)))
-        menu.addItem(action("Reset Widget Position", #selector(resetPosition)))
+        menu.addItem(action("Add the Widget to Your Desktop…", #selector(showWidgetHelp)))
         menu.addItem(.separator())
 
         menu.addItem(loginMenuItem())
@@ -108,8 +105,18 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         return item
     }
 
-    @objc private func toggleWidget() { widget.setVisible(!widget.isVisible) }
-    @objc private func resetPosition() { widget.resetPosition() }
+    @objc private func showWidgetHelp() {
+        Alerts.show(
+            title: "Add the WoW Forever widget",
+            message: """
+            1. Right-click an empty area of the desktop and choose Edit Widgets….
+            2. Search for "WoW Forever" and drag the size you want onto the desktop.
+
+            Widgets turn monochrome when windows cover the desktop. For full color, choose \
+            System Settings → Desktop & Dock → Widget style → Full-color.
+            """
+        )
+    }
     @objc private func toggleLogin() { LoginItem.toggle() }
     @objc private func openNotificationSettings() { NotificationScheduler.openSettings() }
     @objc private func quit() { NSApp.terminate(nil) }

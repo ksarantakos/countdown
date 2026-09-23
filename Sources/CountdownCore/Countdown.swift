@@ -49,3 +49,51 @@ public struct Remaining: Equatable, Sendable {
         return String(format: "%dd %02d:%02d:%02d", days, hours, minutes, seconds)
     }
 }
+
+public enum ElapsedText {
+    /// "Launched just now", "Launched 5m ago", "Launched 2h 14m ago", "Launched 3d 4h ago".
+    public static func since(_ target: Date, now: Date) -> String {
+        let seconds = max(0, Int(now.timeIntervalSince(target)))
+        let days = seconds / 86_400
+        let hours = seconds % 86_400 / 3_600
+        let minutes = seconds % 3_600 / 60
+        switch seconds {
+        case ..<60: return "Launched just now"
+        case ..<3_600: return "Launched \(minutes)m ago"
+        case ..<86_400: return "Launched \(hours)h \(minutes)m ago"
+        default: return "Launched \(days)d \(hours)h ago"
+        }
+    }
+}
+
+/// WidgetKit timeline: one entry per day boundary, then a live entry at the target.
+public enum WidgetTimeline {
+    public enum Entry: Equatable, Sendable {
+        /// Shows `days` statically and a live timer counting down to `timerEnd`.
+        case counting(start: Date, days: Int, timerEnd: Date)
+        case live(start: Date)
+
+        public var start: Date {
+            switch self {
+            case .counting(let start, _, _), .live(let start): return start
+            }
+        }
+    }
+
+    /// Boundaries are `target - k·86400`. Returns `complete == false` when capped at `limit`,
+    /// in which case the widget should request a new timeline after the last entry.
+    public static func entries(target: Date, now: Date, limit: Int = 90) -> (entries: [Entry], complete: Bool) {
+        guard now < target else { return ([.live(start: now)], true) }
+        let day: TimeInterval = 86_400
+        let current = Int((target.timeIntervalSince(now) / day).rounded(.up)) - 1
+        var entries: [Entry] = [.counting(start: now, days: current, timerEnd: target - Double(current) * day)]
+        var days = current - 1
+        while days >= 0, entries.count < limit {
+            entries.append(.counting(start: target - Double(days + 1) * day, days: days, timerEnd: target - Double(days) * day))
+            days -= 1
+        }
+        guard days < 0 else { return (entries, false) }
+        entries.append(.live(start: target))
+        return (entries, true)
+    }
+}

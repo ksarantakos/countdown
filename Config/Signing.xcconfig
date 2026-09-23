@@ -1,0 +1,5 @@
+// Signing team. Put your team in Config/Local.xcconfig (gitignored):
+//   DEVELOPMENT_TEAM = ABCDE12345
+CODE_SIGN_STYLE = Automatic
+DEVELOPMENT_TEAM =
+#include? "Local.xcconfig"

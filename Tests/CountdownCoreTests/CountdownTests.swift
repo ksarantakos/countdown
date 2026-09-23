@@ -20,6 +20,14 @@ import Testing
         #expect(r.compactText == "LIVE")
     }
 
+    @Test func elapsedText() {
+        let t = LaunchTarget.date
+        #expect(ElapsedText.since(t, now: t + 20) == "Launched just now")
+        #expect(ElapsedText.since(t, now: t + 5 * 60) == "Launched 5m ago")
+        #expect(ElapsedText.since(t, now: t + 2 * 3_600 + 14 * 60) == "Launched 2h 14m ago")
+        #expect(ElapsedText.since(t, now: t + 3 * 86_400 + 4 * 3_600) == "Launched 3d 4h ago")
+    }
+
     @Test func breakdown() {
         let seconds: TimeInterval = 42 * 86_400 + 6 * 3_600 + 13 * 60 + 2
         let r = Remaining(now: LaunchTarget.date - seconds, target: LaunchTarget.date)
@@ -154,54 +162,41 @@ import Testing
     }
 }
 
-@Suite struct PlacementTests {
-    let size = CGSize(width: 360, height: 220)
-    let main = ScreenInfo(id: 1, name: "Built-in", visibleFrame: CGRect(x: 0, y: 0, width: 1512, height: 944))
-    let external = ScreenInfo(id: 2, name: "Studio Display", visibleFrame: CGRect(x: 1512, y: 0, width: 2560, height: 1415))
+@Suite struct WidgetTimelineTests {
+    let target = LaunchTarget.date
+    let day: TimeInterval = 86_400
 
-    @Test func defaultIsTopRightOfPrimary() {
-        let frame = Placement.frame(for: size, saved: nil, screens: [main])
-        #expect(frame == CGRect(x: 1512 - 360 - 24, y: 944 - 220 - 24, width: 360, height: 220))
+    @Test func dayBoundaryEntries() {
+        let now = target - 1.5 * day
+        let (entries, complete) = WidgetTimeline.entries(target: target, now: now)
+        #expect(complete)
+        #expect(entries == [
+            .counting(start: now, days: 1, timerEnd: target - day),
+            .counting(start: target - day, days: 0, timerEnd: target),
+            .live(start: target),
+        ])
     }
 
-    @Test func restoresOnSavedScreen() {
-        let saved = SavedPlacement(screenID: 2, screenName: "Studio Display", offsetX: 100, offsetY: 200)
-        #expect(Placement.frame(for: size, saved: saved, screens: [main, external])?.origin == CGPoint(x: 1612, y: 200))
+    @Test func exactBoundaryStartsNextDay() {
+        let (entries, _) = WidgetTimeline.entries(target: target, now: target - 2 * day)
+        #expect(entries.first == .counting(start: target - 2 * day, days: 1, timerEnd: target - day))
     }
 
-    @Test func missingScreenFallsBackToPrimaryAndClamps() {
-        let saved = SavedPlacement(screenID: 2, screenName: "Studio Display", offsetX: 2000, offsetY: 1200)
-        let frame = Placement.frame(for: size, saved: saved, screens: [main])!
-        #expect(main.visibleFrame.contains(frame))
-        #expect(frame.origin == CGPoint(x: 1512 - 360, y: 944 - 220))
+    @Test func finalSecondsAndLive() {
+        #expect(WidgetTimeline.entries(target: target, now: target - 5).entries.first == .counting(start: target - 5, days: 0, timerEnd: target))
+        #expect(WidgetTimeline.entries(target: target, now: target + 5).entries == [.live(start: target + 5)])
     }
 
-    @Test func matchesScreenByNameWhenIDChanges() {
-        let reconnected = ScreenInfo(id: 9, name: "Studio Display", visibleFrame: external.visibleFrame)
-        let saved = SavedPlacement(screenID: 2, screenName: "Studio Display", offsetX: 10, offsetY: 10)
-        #expect(Placement.frame(for: size, saved: saved, screens: [main, reconnected])?.origin == CGPoint(x: 1522, y: 10))
+    @Test func cappedTimelineIsIncomplete() {
+        let (entries, complete) = WidgetTimeline.entries(target: target, now: target - 42.3 * day, limit: 10)
+        #expect(entries.count == 10)
+        #expect(!complete)
+        #expect(entries.first == .counting(start: target - 42.3 * day, days: 42, timerEnd: target - 42 * day))
     }
 
-    @Test func offScreenFrameIsClamped() {
-        let clamped = Placement.clamp(CGRect(x: -500, y: -500, width: 360, height: 220), into: main.visibleFrame)
-        #expect(clamped.origin == .zero)
-    }
-
-    @Test func oversizedFrameAlignsTopLeft() {
-        let small = CGRect(x: 0, y: 0, width: 300, height: 200)
-        let clamped = Placement.clamp(CGRect(x: 50, y: 50, width: 400, height: 300), into: small)
-        #expect(clamped.origin == CGPoint(x: 0, y: -100))
-    }
-
-    @Test func screenForFramePrefersLargestOverlap() {
-        let frame = CGRect(x: 1400, y: 100, width: 360, height: 220)  // mostly on external
-        #expect(Placement.screen(for: frame, among: [main, external])?.id == 2)
-        #expect(Placement.screen(for: CGRect(x: -9000, y: 0, width: 10, height: 10), among: [main, external])?.id == 1)
-    }
-
-    @Test func savedRoundTrips() {
-        let frame = CGRect(x: 1612, y: 200, width: 360, height: 220)
-        let saved = Placement.saved(for: frame, on: external)
-        #expect(Placement.frame(for: size, saved: saved, screens: [main, external]) == frame)
+    @Test func realCountdownFitsInOneTimeline() {
+        let (entries, complete) = WidgetTimeline.entries(target: target, now: target - 42.3 * day)
+        #expect(complete)
+        #expect(entries.count == 44)  // today + 42 boundaries + live
     }
 }
