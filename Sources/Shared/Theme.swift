@@ -57,6 +57,20 @@ enum Fonts {
     }()
 }
 
+extension View {
+    /// Sizes the layout box to Cinzel's capital height (0.70 em) and centers the capitals in it.
+    /// Cinzel's line box is 1.35 em with 0.28 em above the caps and 0.37 em below the baseline,
+    /// so without this, stacks space by invisible padding rather than by visible glyphs.
+    func cinzelCapBox(_ size: CGFloat) -> some View {
+        offset(y: size * 0.048).frame(height: size * 0.70)
+    }
+
+    /// Same for Open Sans capitals (cap height 0.714 em).
+    func openSansCapBox(_ size: CGFloat) -> some View {
+        offset(y: -size * 0.031).frame(height: size * 0.714)
+    }
+}
+
 extension Color {
     init(hex: UInt32) {
         self.init(

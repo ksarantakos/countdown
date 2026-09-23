@@ -87,5 +87,8 @@ if (( INSTALL )); then
   ditto "dist/$APP_NAME.app" "$HOME/Applications/$APP_NAME.app"
   # Register the app (and its widget extension) with LaunchServices.
   /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f "$HOME/Applications/$APP_NAME.app"
+  # The widget extension is a stateless service macOS relaunches on demand; stop any old
+  # instance so the new build renders instead of the previous binary.
+  if pkill -x "${APP_NAME}Widget"; then echo "==> stopped the previous widget extension"; fi
   echo "==> installed to ~/Applications/$APP_NAME.app"
 fi

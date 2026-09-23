@@ -28,11 +28,12 @@ private struct Wordmark: View {
     var body: some View {
         Text("WoW Forever")
             .font(Theme.display(size, weight: .bold))
-            .tracking(size * 0.08)
+            .tracking(size * 0.06)
             .foregroundStyle(Theme.carved)
             .shadow(color: renderingMode == .fullColor ? .black.opacity(0.6) : .clear, radius: 0, y: 1)
             .lineLimit(1)
-            .minimumScaleFactor(0.6)
+            .fixedSize()
+            .cinzelCapBox(size)
     }
 }
 
@@ -49,6 +50,8 @@ private struct DaysNumeral: View {
             .shadow(color: fullColor ? .black.opacity(0.5) : .clear, radius: 0, y: 2)
             .widgetAccentable()
             .contentTransition(.numericText(countsDown: true))
+            .fixedSize()
+            .cinzelCapBox(size)
     }
 }
 
@@ -60,6 +63,8 @@ private struct CapsLabel: View {
             .font(Theme.label(size, weight: .semibold))
             .tracking(size * 0.3)
             .foregroundStyle(Theme.beige300.opacity(0.75))
+            .fixedSize()
+            .openSansCapBox(size)
     }
 }
 
@@ -75,25 +80,36 @@ private struct LiveTimer: View {
             .foregroundStyle(Theme.carved)
             .shadow(color: renderingMode == .fullColor ? .black.opacity(0.6) : .clear, radius: 0, y: 1)
             .multilineTextAlignment(.center)
+            .cinzelCapBox(size)
+    }
+}
+
+private struct LaunchCaption: View {
+    var size: CGFloat
+    var body: some View {
+        Text("Nov 4 · 3:00 PM PT")
+            .font(Theme.label(size, weight: .medium))
+            .foregroundStyle(Theme.beige200.opacity(0.85))
+            .fixedSize()
+            .openSansCapBox(size)
     }
 }
 
 private func daysLabel(_ days: Int) -> String { days == 1 ? "DAY" : "DAYS" }
 
-private let launchCaption = "Nov 4 · 3:00 PM PT"
-
 // MARK: - Layouts
+// Spacing is between visible glyphs (see cinzelCapBox), so these numbers are what you see.
 
 private struct SmallLayout: View {
     var days: Int
     var timer: ClosedRange<Date>
     var body: some View {
-        VStack(spacing: 2) {
-            Wordmark(size: 14)
-            Ornament(width: 100)
-            DaysNumeral(days: days, size: 54)
-            CapsLabel(text: daysLabel(days), size: 8).padding(.top, -6)
-            LiveTimer(interval: timer, size: 20).padding(.top, 2)
+        VStack(spacing: 0) {
+            Wordmark(size: 15)
+            Ornament(width: 96).padding(.top, 7)
+            DaysNumeral(days: days, size: 58).padding(.top, 14)
+            CapsLabel(text: daysLabel(days), size: 8).padding(.top, 9)
+            LiveTimer(interval: timer, size: 20).padding(.top, 13)
         }
     }
 }
@@ -103,24 +119,22 @@ private struct MediumLayout: View {
     var timer: ClosedRange<Date>
     var body: some View {
         HStack(spacing: 0) {
-            VStack(spacing: 6) {
-                Wordmark(size: 20)
-                Ornament(width: 120)
-                CapsLabel(text: "LAUNCH", size: 8)
-                Text(launchCaption)
-                    .font(Theme.label(11, weight: .medium))
-                    .foregroundStyle(Theme.beige200.opacity(0.85))
+            VStack(spacing: 0) {
+                Wordmark(size: 19)
+                Ornament(width: 120).padding(.top, 9)
+                CapsLabel(text: "LAUNCH", size: 8).padding(.top, 14)
+                LaunchCaption(size: 12).padding(.top, 8)
             }
             .frame(maxWidth: .infinity)
 
             LinearGradient(colors: [.clear, Theme.beige400.opacity(0.8), .clear], startPoint: .top, endPoint: .bottom)
                 .frame(width: 1)
-                .padding(.vertical, 8)
+                .padding(.vertical, 14)
 
-            VStack(spacing: 2) {
-                DaysNumeral(days: days, size: 58)
-                CapsLabel(text: daysLabel(days), size: 8).padding(.top, -6)
-                LiveTimer(interval: timer, size: 22).padding(.top, 4)
+            VStack(spacing: 0) {
+                DaysNumeral(days: days, size: 60)
+                CapsLabel(text: daysLabel(days), size: 8).padding(.top, 9)
+                LiveTimer(interval: timer, size: 22).padding(.top, 14)
             }
             .frame(maxWidth: .infinity)
         }
@@ -131,22 +145,21 @@ private struct LargeLayout: View {
     var days: Int
     var timer: ClosedRange<Date>
     var body: some View {
-        VStack(spacing: 10) {
-            Wordmark(size: 28)
-            Ornament(width: 180)
+        VStack(spacing: 0) {
+            Wordmark(size: 26)
+            Ornament(width: 180).padding(.top, 11)
             Medallion {
                 VStack(spacing: 0) {
-                    DaysNumeral(days: days, size: 72)
-                    CapsLabel(text: daysLabel(days), size: 10).padding(.top, -8)
+                    DaysNumeral(days: days, size: 70)
+                    CapsLabel(text: daysLabel(days), size: 9).padding(.top, 10)
                 }
+                .padding(.top, 4)
             }
-            .frame(width: 170, height: 170)
-            LiveTimer(interval: timer, size: 30)
-            CapsLabel(text: "HOURS  ·  MINUTES  ·  SECONDS", size: 8)
-            Text(launchCaption)
-                .font(Theme.label(12, weight: .medium))
-                .foregroundStyle(Theme.beige200.opacity(0.8))
-                .padding(.top, 2)
+            .frame(width: 164, height: 164)
+            .padding(.top, 14)
+            LiveTimer(interval: timer, size: 32).padding(.top, 18)
+            CapsLabel(text: "HOURS  ·  MINUTES  ·  SECONDS", size: 8).padding(.top, 13)
+            LaunchCaption(size: 12).padding(.top, 20)
         }
     }
 }
@@ -155,10 +168,10 @@ private struct LiveLayout: View {
     var family: WidgetFamily
     @Environment(\.widgetRenderingMode) private var renderingMode
     var body: some View {
-        let big: CGFloat = family == .systemSmall ? 30 : family == .systemMedium ? 40 : 52
-        VStack(spacing: 8) {
+        let big: CGFloat = family == .systemSmall ? 30 : family == .systemMedium ? 44 : 54
+        VStack(spacing: 0) {
             Wordmark(size: big * 0.45)
-            Ornament(width: big * 3)
+            Ornament(width: big * 3).padding(.top, big * 0.25)
             Text("NOW LIVE")
                 .font(Theme.display(big, weight: .black))
                 .foregroundStyle(Theme.goldLeaf)
@@ -166,10 +179,13 @@ private struct LiveLayout: View {
                 .widgetAccentable()
                 .lineLimit(1)
                 .minimumScaleFactor(0.5)
+                .cinzelCapBox(big)
+                .padding(.top, big * 0.4)
             (Text("Launched ") + Text(LaunchTarget.date, style: .relative) + Text(" ago"))
                 .font(Theme.label(big * 0.26, weight: .medium))
                 .foregroundStyle(Theme.beige200.opacity(0.85))
                 .multilineTextAlignment(.center)
+                .padding(.top, big * 0.35)
         }
     }
 }
