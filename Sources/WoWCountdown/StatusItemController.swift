@@ -8,11 +8,13 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     private let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     private let countdown: CountdownController
     private let notifications: NotificationScheduler
+    private let celebration: CelebrationController
     private var cancellable: AnyCancellable?
 
-    init(countdown: CountdownController, notifications: NotificationScheduler) {
+    init(countdown: CountdownController, notifications: NotificationScheduler, celebration: CelebrationController) {
         self.countdown = countdown
         self.notifications = notifications
+        self.celebration = celebration
         super.init()
 
         if let button = item.button {
@@ -46,6 +48,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         menu.addItem(.separator())
 
         menu.addItem(action("Add the Widget to Your Desktop…", #selector(showWidgetHelp)))
+        menu.addItem(action("Preview Celebration", #selector(previewCelebration)))
         menu.addItem(.separator())
 
         menu.addItem(loginMenuItem())
@@ -104,6 +107,9 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         item.target = self
         return item
     }
+
+    /// Fireworks and fanfare only; the countdown and the launch flag are untouched.
+    @objc private func previewCelebration() { celebration.play(.preview) }
 
     @objc private func showWidgetHelp() {
         Alerts.show(

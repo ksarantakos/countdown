@@ -8,6 +8,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var countdown: CountdownController!
     private var notifications: NotificationScheduler!
     private var statusItem: StatusItemController!
+    private let celebration = CelebrationController()
     private var wakeObserver: NSObjectProtocol?
 
     init(mode: RuntimeMode) {
@@ -24,12 +25,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let store = mode.makeStore(persistent: UserDefaults.standard)
 
         countdown = CountdownController(target: mode.target(now: Date()), isDemo: mode.isDemo, store: store)
-        countdown.onCelebrate = {
-            // Phase 2 adds fireworks and the fanfare here.
+        countdown.onCelebrate = { [celebration] in
             Log.app.notice("Launch celebration triggered")
+            celebration.play(.launch)
         }
         notifications = NotificationScheduler(target: countdown.target, isDemo: mode.isDemo)
-        statusItem = StatusItemController(countdown: countdown, notifications: notifications)
+        statusItem = StatusItemController(countdown: countdown, notifications: notifications, celebration: celebration)
 
         Log.app.notice("Launched (demo: \(self.mode.isDemo, privacy: .public)), target \(LaunchTarget.key(for: self.countdown.target), privacy: .public), menu icon: \(ResourceLocator.image(named: "MenuIcon") == nil ? "MISSING" : "ok", privacy: .public)")
 
