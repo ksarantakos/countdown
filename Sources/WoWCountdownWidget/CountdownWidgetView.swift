@@ -126,6 +126,7 @@ private struct MediumLayout: View {
                 LaunchCaption(size: 12).padding(.top, 8)
             }
             .frame(maxWidth: .infinity)
+            .padding(.trailing, 14)
 
             LinearGradient(colors: [.clear, Theme.beige400.opacity(0.8), .clear], startPoint: .top, endPoint: .bottom)
                 .frame(width: 1)
@@ -136,7 +137,9 @@ private struct MediumLayout: View {
                 CapsLabel(text: daysLabel(days), size: 8).padding(.top, 9)
                 LiveTimer(interval: timer, size: 22).padding(.top, 14)
             }
-            .frame(maxWidth: .infinity)
+            // The numerals need far less width than the wordmark; give the extra to the left column.
+            .frame(width: 124)
+            .padding(.leading, 8)
         }
     }
 }
