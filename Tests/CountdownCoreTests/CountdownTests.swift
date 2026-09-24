@@ -214,7 +214,7 @@ import Testing
     /// The widget must always read exactly what the menu bar's `Remaining` reads, with leading zeros.
     @Test func widgetMatchesRemainingAroundEveryBoundary() {
         let start = target - 3 * day - 0.25
-        let (entries, complete) = WidgetTimeline.entries(target: target, now: start, limit: 1_000)
+        let (entries, complete) = WidgetTimeline.entries(target: target, now: start)
         #expect(complete)
         var samples: [Date] = []
         for k in 0...3 {
@@ -233,18 +233,38 @@ import Testing
     }
 
     @Test func alwaysEightCharacterTimer() {
-        let (entries, _) = WidgetTimeline.entries(target: target, now: target - 2 * day, limit: 1_000)
+        let (entries, _) = WidgetTimeline.entries(target: target, now: target - 2 * day)
         for now in stride(from: target - 2 * day, to: target, by: 311.7).map({ $0 }) {
             let text = widgetText(entries, at: now)
             #expect(text.split(separator: " ").last?.count == 8, "\(text)")
         }
     }
 
-    @Test func liveAndCapped() {
+    @Test func live() {
         #expect(WidgetTimeline.entries(target: target, now: target + 5).entries == [.live(start: target + 5)])
-        let (entries, complete) = WidgetTimeline.entries(target: target, now: target - 42.3 * day, limit: 10)
-        #expect(entries.count == 10)
+    }
+
+    /// The real countdown must fit in one timeline, so the widget never depends on a reload.
+    @Test func realCountdownFitsInOneTimeline() {
+        let now = target - 42.3 * day
+        let (entries, complete) = WidgetTimeline.entries(target: target, now: now)
+        #expect(complete)
+        // 0.3 of day 42 remains: its "0", "00:" and "00:0" pieces, then 4 pieces for each of days 41…0, then live.
+        #expect(entries.count == 3 + 42 * 4 + 1)
+        #expect(entries.last == .live(start: target))
+        for now in stride(from: now, to: target, by: 7_919.0).map({ $0 }) {
+            #expect(widgetText(entries, at: now) == Remaining(now: now, target: target).compactText)
+        }
+    }
+
+    /// A capped timeline ends on a day's final piece, never partway through a day.
+    @Test func cappedTimelineEndsAtADayBoundary() {
+        let (entries, complete) = WidgetTimeline.entries(target: target, now: target - 10.5 * day, maxDays: 3)
         #expect(!complete)
+        guard case .counting(let last) = entries.last else { Issue.record("expected counting"); return }
+        #expect(last.prefix == "00:0")
+        #expect(last.days == 8)
+        #expect(Set(entries.compactMap { if case .counting(let c) = $0 { c.days } else { nil } }) == [10, 9, 8])
     }
 
     @Test func finalSecondOfDayIsValid() {

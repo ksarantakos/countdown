@@ -119,21 +119,25 @@ public enum WidgetTimeline {
     private static let steps: [TimeInterval] = [86_399, 35_999, 3_599, 599]
 
     /// Day `k` is shown while the rounded-up time left is between `k·86400` and `k·86400 + 86399`
-    /// seconds, matching `Remaining`. Returns `complete == false` when capped at `limit`, in which
-    /// case the widget should request a new timeline after the last entry.
-    public static func entries(target: Date, now: Date, limit: Int = 60) -> (entries: [Entry], complete: Bool) {
+    /// seconds, matching `Remaining`.
+    ///
+    /// The default covers any realistic countdown in one timeline (up to 4 entries a day), so the
+    /// widget never depends on a reload. If `maxDays` is exceeded, the timeline is cut only at the
+    /// end of a day and `complete` is `false`; the widget should then reload after the last entry.
+    public static func entries(target: Date, now: Date, maxDays: Int = 400) -> (entries: [Entry], complete: Bool) {
         guard now < target else { return ([.live(start: now)], true) }
         let day: TimeInterval = 86_400
         var days = Int(target.timeIntervalSince(now).rounded(.up)) / Int(day)
         var entries: [Entry] = []
+        var daysEmitted = 0
         while days >= 0 {
+            guard daysEmitted < maxDays else { return (entries, false) }
             let end = target - Double(days) * day
             // The day's last piece runs until the next day starts, one second after `end`, or until launch.
             let dayOver = days == 0 ? target : end + 1
             for (index, offset) in steps.enumerated() {
                 let pieceEnd = index + 1 < steps.count ? end - steps[index + 1] : dayOver
                 guard pieceEnd > now else { continue }
-                guard entries.count < limit else { return (entries, false) }
                 entries.append(.counting(Countdown(
                     start: max(end - offset, now),
                     days: days,
@@ -141,6 +145,7 @@ public enum WidgetTimeline {
                     prefix: timerPrefix(displayedSeconds: Int(offset))
                 )))
             }
+            daysEmitted += 1
             days -= 1
         }
         entries.append(.live(start: target))

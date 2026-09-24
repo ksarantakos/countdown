@@ -12,7 +12,7 @@ struct CountdownProvider: TimelineProvider {
 
     func placeholder(in context: Context) -> CountdownEntry {
         let now = Date()
-        return CountdownEntry(date: now, state: WidgetTimeline.entries(target: target, now: now, limit: 1).entries[0])
+        return CountdownEntry(date: now, state: WidgetTimeline.entries(target: target, now: now, maxDays: 1).entries[0])
     }
 
     func getSnapshot(in context: Context, completion: @escaping (CountdownEntry) -> Void) {

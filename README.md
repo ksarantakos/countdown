@@ -118,6 +118,12 @@ xcodegen generate          # regenerate WoWCountdown.xcodeproj (gitignored) from
 open WoWCountdown.xcodeproj
 ```
 
+The tests use Swift Testing, which ships with Xcode but not with the Command Line Tools. If `xcode-select -p` prints a `CommandLineTools` path, `swift test` fails with `no such module 'Testing'`. In that case, run it against Xcode:
+
+```sh
+DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift test
+```
+
 The countdown logic lives in `CountdownCore`, a SwiftPM library with no AppKit dependency, and is fully unit-tested. It covers:
 
 - the DST-correct target time;
