@@ -32,6 +32,8 @@ targets:
       path: Generated/WoWCountdown-Info.plist
       properties:
         CFBundleDisplayName: WoW Forever Countdown
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         LSUIElement: true
         LSApplicationCategoryType: public.app-category.entertainment
         NSHumanReadableCopyright: Unofficial fan-made countdown. World of Warcraft is a trademark of Blizzard Entertainment.
@@ -55,6 +57,8 @@ targets:
       path: Generated/WoWCountdownWidget-Info.plist
       properties:
         CFBundleDisplayName: WoW Forever Countdown
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
     entitlements:
