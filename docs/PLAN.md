@@ -8,7 +8,7 @@ This is the implementation plan the app was built from. It went through several 
 |---|---|---|
 | 1 | Thin vertical slice: packaged and signed app, countdown, menu bar, resources, notifications, login item | Done |
 | 2 | Visuals and the launch celebration | Done, as a WidgetKit widget (see the revision) |
-| 3 | README, screenshots, GitHub release | Done: [v1.0.0](https://github.com/ksarantakos/countdown/releases/tag/v1.0.0) (arm64) |
+| 3 | README, screenshots, GitHub release | Done: [v1.0.0](https://github.com/ksarantakos/countdown/releases/tag/v1.0.0), then [v1.0.1](https://github.com/ksarantakos/countdown/releases/tag/v1.0.1) with the widget timer fixes (arm64) |
 
 ## Refinements since the revision
 
