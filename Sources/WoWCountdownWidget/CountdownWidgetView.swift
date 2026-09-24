@@ -8,11 +8,11 @@ struct CountdownWidgetView: View {
 
     var body: some View {
         switch entry.state {
-        case .counting(_, let days, let timerEnd):
+        case .counting(let countdown):
             switch family {
-            case .systemMedium: MediumLayout(days: days, timer: entry.date...timerEnd)
-            case .systemLarge: LargeLayout(days: days, timer: entry.date...timerEnd)
-            default: SmallLayout(days: days, timer: entry.date...timerEnd)
+            case .systemMedium: MediumLayout(countdown: countdown)
+            case .systemLarge: LargeLayout(countdown: countdown)
+            default: SmallLayout(countdown: countdown)
             }
         case .live:
             LiveLayout(family: family)
@@ -68,16 +68,17 @@ private struct CapsLabel: View {
     }
 }
 
-/// System-rendered H:MM:SS that ticks live inside the widget.
+/// Live HH:MM:SS: a static leading-zero prefix plus the system timer, which ticks inside the widget.
+/// It must use a solid color: a gradient fill renders the timer as a static image and it stops ticking.
 private struct LiveTimer: View {
-    var interval: ClosedRange<Date>
+    var countdown: WidgetTimeline.Countdown
     var size: CGFloat
     @Environment(\.widgetRenderingMode) private var renderingMode
     var body: some View {
-        Text(timerInterval: interval, countsDown: true)
+        (Text(countdown.prefix) + Text(timerInterval: countdown.timerRange, countsDown: true))
             .font(Theme.display(size, weight: .bold))
             .monospacedDigit()
-            .foregroundStyle(Theme.carved)
+            .foregroundStyle(Theme.beige200)
             .shadow(color: renderingMode == .fullColor ? .black.opacity(0.6) : .clear, radius: 0, y: 1)
             .multilineTextAlignment(.center)
             .cinzelCapBox(size)
@@ -101,23 +102,23 @@ private func daysLabel(_ days: Int) -> String { days == 1 ? "DAY" : "DAYS" }
 // Spacing is between visible glyphs (see cinzelCapBox), so these numbers are what you see.
 
 private struct SmallLayout: View {
-    var days: Int
-    var timer: ClosedRange<Date>
+    var countdown: WidgetTimeline.Countdown
     var body: some View {
+        let days = countdown.days
         VStack(spacing: 0) {
             Wordmark(size: 15)
             Ornament(width: 96).padding(.top, 7)
             DaysNumeral(days: days, size: 58).padding(.top, 14)
             CapsLabel(text: daysLabel(days), size: 8).padding(.top, 9)
-            LiveTimer(interval: timer, size: 20).padding(.top, 13)
+            LiveTimer(countdown: countdown, size: 20).padding(.top, 13)
         }
     }
 }
 
 private struct MediumLayout: View {
-    var days: Int
-    var timer: ClosedRange<Date>
+    var countdown: WidgetTimeline.Countdown
     var body: some View {
+        let days = countdown.days
         HStack(spacing: 0) {
             VStack(spacing: 0) {
                 Wordmark(size: 19)
@@ -135,7 +136,7 @@ private struct MediumLayout: View {
             VStack(spacing: 0) {
                 DaysNumeral(days: days, size: 60)
                 CapsLabel(text: daysLabel(days), size: 8).padding(.top, 9)
-                LiveTimer(interval: timer, size: 22).padding(.top, 14)
+                LiveTimer(countdown: countdown, size: 22).padding(.top, 14)
             }
             // The numerals need far less width than the wordmark; give the extra to the left column.
             .frame(width: 124)
@@ -145,9 +146,9 @@ private struct MediumLayout: View {
 }
 
 private struct LargeLayout: View {
-    var days: Int
-    var timer: ClosedRange<Date>
+    var countdown: WidgetTimeline.Countdown
     var body: some View {
+        let days = countdown.days
         VStack(spacing: 0) {
             Wordmark(size: 26)
             Ornament(width: 180).padding(.top, 11)
@@ -160,7 +161,7 @@ private struct LargeLayout: View {
             }
             .frame(width: 164, height: 164)
             .padding(.top, 14)
-            LiveTimer(interval: timer, size: 32).padding(.top, 18)
+            LiveTimer(countdown: countdown, size: 32).padding(.top, 18)
             CapsLabel(text: "HOURS  ·  MINUTES  ·  SECONDS", size: 8).padding(.top, 13)
             LaunchCaption(size: 12).padding(.top, 20)
         }
@@ -287,6 +288,6 @@ struct WidgetBackground: View {
 #Preview(as: .systemLarge) {
     CountdownWidget()
 } timeline: {
-    CountdownEntry(date: .now, state: .counting(start: .now, days: 42, timerEnd: .now + 12_000))
+    CountdownEntry(date: .now, state: .counting(.init(start: .now, days: 42, timerEnd: .now + 12_000, prefix: "0")))
     CountdownEntry(date: .now, state: .live(start: .now))
 }

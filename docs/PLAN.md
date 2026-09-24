@@ -17,6 +17,8 @@ This is the implementation plan the app was built from. It went through several 
 - **Spacing by visible glyphs**: Cinzel's line box is 1.35 em tall around 0.70 em capitals. Text boxes are sized to cap height (`cinzelCapBox`, `openSansCapBox`), so layout gaps equal the visible gaps.
 - **Fireworks on an ultrawide**: a fading dark scrim, larger bursts and a bigger finale, so the show reads over busy windows.
 - **Stale widget process**: macOS keeps the old widget extension running after a reinstall, so `build.sh` stops it and the new build renders.
+- **Frozen widget timer (fixed after v1.0.0)**: the widget's seconds never ticked. Filling the timer text with a gradient makes WidgetKit draw it as a static image. Isolated by testing each style on its own; the timer now uses a solid color.
+- **Leading zeros**: the system timer rounds up and drops leading zeros (`4:59:56`, `49:56`, `9:45`). Each day is split into timeline entries where a digit drops (at 35,999, 3,599 and 599 seconds left), and each entry adds a static `0`, `00:` or `00:0` prefix. The widget therefore always reads `HH:MM:SS`, and each day starts one second after the boundary so the widget matches the menu bar exactly. A unit test simulates the system timer around every boundary and compares it with `Remaining`.
 - **Repository**: the existing private repo `ksarantakos/countdown` is used, rather than the `wow-forever-countdown` name the original plan proposed.
 
 ## Revision (during Phase 2): a real WidgetKit widget replaces the floating panel

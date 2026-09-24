@@ -166,37 +166,94 @@ import Testing
     let target = LaunchTarget.date
     let day: TimeInterval = 86_400
 
-    @Test func dayBoundaryEntries() {
+    /// What `Text(timerInterval:countsDown:)` shows (measured: rounds up; `4:59:56`, `49:56`, `9:45`, `0:45`).
+    func systemTimerText(_ range: ClosedRange<Date>, at now: Date) -> String {
+        let seconds = max(0, Int(range.upperBound.timeIntervalSince(max(now, range.lowerBound)).rounded(.up)))
+        let h = seconds / 3_600, m = seconds % 3_600 / 60, s = seconds % 60
+        return h > 0 ? String(format: "%d:%02d:%02d", h, m, s) : String(format: "%d:%02d", m, s)
+    }
+
+    /// What the widget would display at `now`, as "Nd HH:MM:SS" or "LIVE".
+    func widgetText(_ entries: [WidgetTimeline.Entry], at now: Date) -> String {
+        let active = entries.last { $0.start <= now }!
+        switch active {
+        case .live: return "LIVE"
+        case .counting(let c): return "\(c.days)d " + c.prefix + systemTimerText(c.timerRange, at: now)
+        }
+    }
+
+    @Test func prefixes() {
+        #expect(WidgetTimeline.timerPrefix(displayedSeconds: 86_399) == "")
+        #expect(WidgetTimeline.timerPrefix(displayedSeconds: 36_000) == "")
+        #expect(WidgetTimeline.timerPrefix(displayedSeconds: 35_999) == "0")
+        #expect(WidgetTimeline.timerPrefix(displayedSeconds: 3_600) == "0")
+        #expect(WidgetTimeline.timerPrefix(displayedSeconds: 3_599) == "00:")
+        #expect(WidgetTimeline.timerPrefix(displayedSeconds: 600) == "00:")
+        #expect(WidgetTimeline.timerPrefix(displayedSeconds: 599) == "00:0")
+        #expect(WidgetTimeline.timerPrefix(displayedSeconds: 0) == "00:0")
+    }
+
+    @Test func entriesForADayAndAHalf() {
         let now = target - 1.5 * day
         let (entries, complete) = WidgetTimeline.entries(target: target, now: now)
         #expect(complete)
+        let end1 = target - day
         #expect(entries == [
-            .counting(start: now, days: 1, timerEnd: target - day),
-            .counting(start: target - day, days: 0, timerEnd: target),
+            .counting(.init(start: now, days: 1, timerEnd: end1, prefix: "")),
+            .counting(.init(start: end1 - 35_999, days: 1, timerEnd: end1, prefix: "0")),
+            .counting(.init(start: end1 - 3_599, days: 1, timerEnd: end1, prefix: "00:")),
+            .counting(.init(start: end1 - 599, days: 1, timerEnd: end1, prefix: "00:0")),
+            .counting(.init(start: target - 86_399, days: 0, timerEnd: target, prefix: "")),
+            .counting(.init(start: target - 35_999, days: 0, timerEnd: target, prefix: "0")),
+            .counting(.init(start: target - 3_599, days: 0, timerEnd: target, prefix: "00:")),
+            .counting(.init(start: target - 599, days: 0, timerEnd: target, prefix: "00:0")),
             .live(start: target),
         ])
     }
 
-    @Test func exactBoundaryStartsNextDay() {
-        let (entries, _) = WidgetTimeline.entries(target: target, now: target - 2 * day)
-        #expect(entries.first == .counting(start: target - 2 * day, days: 1, timerEnd: target - day))
+    /// The widget must always read exactly what the menu bar's `Remaining` reads, with leading zeros.
+    @Test func widgetMatchesRemainingAroundEveryBoundary() {
+        let start = target - 3 * day - 0.25
+        let (entries, complete) = WidgetTimeline.entries(target: target, now: start, limit: 1_000)
+        #expect(complete)
+        var samples: [Date] = []
+        for k in 0...3 {
+            let end = target - Double(k) * day
+            for offset in [86_400.0, 86_399, 36_000, 35_999, 3_600, 3_599, 600, 599, 60, 1, 0, -1] {
+                for jitter in [-0.5, -0.001, 0, 0.001, 0.5] {
+                    samples.append(end - offset + jitter)
+                }
+            }
+        }
+        samples += stride(from: 0.0, to: 3 * day, by: 997.3).map { start + $0 }
+        for now in samples where now >= start {
+            let remaining = Remaining(now: now, target: target)
+            #expect(widgetText(entries, at: now) == remaining.compactText, "at \(now.timeIntervalSince(target)) s from launch")
+        }
     }
 
-    @Test func finalSecondsAndLive() {
-        #expect(WidgetTimeline.entries(target: target, now: target - 5).entries.first == .counting(start: target - 5, days: 0, timerEnd: target))
+    @Test func alwaysEightCharacterTimer() {
+        let (entries, _) = WidgetTimeline.entries(target: target, now: target - 2 * day, limit: 1_000)
+        for now in stride(from: target - 2 * day, to: target, by: 311.7).map({ $0 }) {
+            let text = widgetText(entries, at: now)
+            #expect(text.split(separator: " ").last?.count == 8, "\(text)")
+        }
+    }
+
+    @Test func liveAndCapped() {
         #expect(WidgetTimeline.entries(target: target, now: target + 5).entries == [.live(start: target + 5)])
-    }
-
-    @Test func cappedTimelineIsIncomplete() {
         let (entries, complete) = WidgetTimeline.entries(target: target, now: target - 42.3 * day, limit: 10)
         #expect(entries.count == 10)
         #expect(!complete)
-        #expect(entries.first == .counting(start: target - 42.3 * day, days: 42, timerEnd: target - 42 * day))
     }
 
-    @Test func realCountdownFitsInOneTimeline() {
-        let (entries, complete) = WidgetTimeline.entries(target: target, now: target - 42.3 * day)
-        #expect(complete)
-        #expect(entries.count == 44)  // today + 42 boundaries + live
+    @Test func finalSecondOfDayIsValid() {
+        // Between the end of a day and the next day's first piece, the range must still be valid.
+        let now = target - day + 0.5
+        let (entries, _) = WidgetTimeline.entries(target: target, now: now)
+        guard case .counting(let first) = entries[0] else { Issue.record("expected counting"); return }
+        #expect(first.days == 1 && first.prefix == "00:0")
+        #expect(first.timerRange.lowerBound <= first.timerRange.upperBound)
+        #expect(widgetText(entries, at: now) == "1d 00:00:00")
     }
 }
